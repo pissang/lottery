@@ -1,3 +1,3 @@
 # lottery
 
-View [online demo](pissang.github.io/lottery)
+View [online demo](http://pissang.github.io/lottery)
