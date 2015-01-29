@@ -77,7 +77,7 @@ define(function (require) {
             culling: false
         });
         cube.position.set(0, R / 2, 0);
-        cube.scale.set(R, R / 4, 5);
+        cube.scale.set(R, R / 4, 1);
         cubeList.push(cube);
 
         return cubeList;
@@ -181,7 +181,7 @@ define(function (require) {
         var ctx = canvas.getContext('2d');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = 'bold 32px 微软雅黑';
+        ctx.font = 'bold 24px 微软雅黑';
 
         ctx.fillStyle = 'black';
         ctx.strokeStyle = 'white';
@@ -375,8 +375,7 @@ define(function (require) {
 
         scene.add(createPlane());
 
-        camera.position.z = 400;
-        camera.position.x = 200;
+        camera.position.set(260, -50, 210)
         camera.lookAt(qtek.math.Vector3.ZERO);
         // Debug
         // scene.add(cubeRoot);
