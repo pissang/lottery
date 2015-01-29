@@ -293,6 +293,31 @@ define(function (require) {
         });
     }
 
+    function createPlane() {
+        var plane = new qtek.Mesh({
+            geometry: new qtek.geometry.Plane(),
+            material: new qtek.Material({
+                shader: qtek.shader.library.get(
+                    'buildin.physical', ['diffuseMap']
+                )
+            })
+        });
+        plane.rotation.rotateX(-Math.PI / 2);
+        plane.position.y = -115;
+        plane.scale.set(400, 400, 1);
+        plane.material.set('color', [1, 1, 1]);
+        var diffuseTexture = new qtek.Texture2D({
+            anisotropic: 32,
+            wrapS: qtek.Texture.REPEAT,
+            wrapT: qtek.Texture.REPEAT
+        });
+        diffuseTexture.load('asset/marble.jpg');
+        plane.material.set('diffuseMap', diffuseTexture);
+        plane.material.set('uvRepeat', [5, 5]);
+
+        return plane;
+    }
+
     function init(dom, candidates) {
         if (typeof(dom) === 'string') {
             dom = document.getElementById('main');
@@ -348,17 +373,7 @@ define(function (require) {
 
         loadBase(scene);
 
-        var plane = new qtek.Mesh({
-            geometry: new qtek.geometry.Plane(),
-            material: new qtek.Material({
-                shader: qtek.shader.library.get('buildin.physical')
-            })
-        });
-        plane.rotation.rotateX(-Math.PI / 2);
-        plane.position.y = -115;
-        plane.scale.set(400, 200, 1);
-        plane.material.set('color', [1, 1, 1]);
-        scene.add(plane);
+        scene.add(createPlane());
 
         camera.position.z = 400;
         camera.position.x = 200;
