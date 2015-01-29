@@ -1,0 +1,64 @@
+<!Doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="stylesheet" href="css/index.css">
+    <title>抽了个奖</title>
+</head>
+    <body>
+        <div id="main"></div>
+        <button id="toggle">START</button>
+        <div id="winner-list">
+            <h3>获奖人名单</h3>
+            <ul></ul>
+        </div>
+        <script src="lib/esl.js"></script>
+        <script src="lib/cannon.js"></script>
+        <script>
+            require.config({
+                paths: {
+                    qtek: 'lib/qtek'
+                }
+            });
+            require(['js/lottery'], function (lottery) {
+                // 候选人
+                var candidates = [];
+                for (var i = 0; i < 180; i++) {
+                    candidates.push({
+                        name: '沈毅' + i,
+                        color: [Math.random(), Math.random(), Math.random()],
+                        weight: Math.random()
+                    })
+                }
+
+                var instance = lottery.init(
+                    'main', candidates
+                );
+                window.onresize = function () {
+                    instance.resize();
+                }
+
+                var rolling = false;
+
+                var $list = document.querySelector('#winner-list ul');
+                var $toggle = document.getElementById('toggle');
+                $toggle.addEventListener('click', function () {
+                    if (! rolling) {
+                        this.innerHTML = 'STOP';
+                        instance.startRolling();
+                    }
+                    else {
+                        this.innerHTML = 'START';
+                        var result = instance.stopRolling(function (name) {
+                            var $li = document.createElement('li');
+                            $li.innerHTML = name;
+                            $list.appendChild($li);
+                        });
+                    }
+                    rolling = !rolling;
+                });
+            });
+        </script>
+    </body>
+</html>
