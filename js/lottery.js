@@ -436,7 +436,7 @@ define(function (require) {
         camera.position.set(260, -50, 210)
         camera.lookAt(qtek.math.Vector3.ZERO);
         // Debug
-        scene.add(cubeRoot);
+        // scene.add(cubeRoot);
         scene.add(ballRoot);
 
         var globeMesh = createGlobe(renderer);
@@ -519,6 +519,7 @@ define(function (require) {
                             })
                             .done(function () {
                                 control.enable();
+                                control.origin.copy(qtek.math.Vector3.ZERO);
                             })
                             .start('CubicOut');
                     })
