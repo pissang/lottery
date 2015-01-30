@@ -182,16 +182,16 @@ define(function (require) {
 
     function drawLabel(name) {
         var canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
+        canvas.width = 128;
+        canvas.height = 128;
         var ctx = canvas.getContext('2d');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = 'bold 20px 微软雅黑';
+        ctx.font = 'bold 40px 微软雅黑';
 
         ctx.fillStyle = 'white';
         ctx.strokeStyle = 'white';
-        ctx.fillText(name, 32, 32);
+        ctx.fillText(name, 64, 64);
 
         return canvas;
     }
@@ -305,7 +305,8 @@ define(function (require) {
                 shader: qtek.shader.library.get(
                     'buildin.physical', ['diffuseMap']
                 )
-            })
+            }),
+            castShadow: false
         });
         plane.rotation.rotateX(-Math.PI / 2);
         plane.position.y = -115;
@@ -497,7 +498,7 @@ define(function (require) {
         var cameraOldPosition = null;
         var cameraOldQuaternion = null;
 
-        function lookBackAnimation() {
+        function lookBackAnimation(cb) {
             if (cameraOldPosition) {
                 var quat = camera.rotation.clone();
                 // Animate position
@@ -519,6 +520,8 @@ define(function (require) {
                             .done(function () {
                                 control.enable();
                                 control.origin.copy(qtek.math.Vector3.ZERO);
+
+                                cb && cb();
                             })
                             .start('CubicOut');
                     })
@@ -527,10 +530,13 @@ define(function (require) {
 
                 // Disable user mouse control
                 control.disable();
+
+            } else {
+                cb && cb();
             }
         }
 
-        function lookAtAnimation(target, distance) {
+        function lookAtAnimation(target, distance, cb) {
             // Camera look at the ball
             // Animate quaternion
             var oldQuat = camera.rotation.clone();
@@ -567,6 +573,7 @@ define(function (require) {
                             control.origin.copy(target);
                             control.enable();
 
+                            cb && cb();
                         })
                         .start('CubicOut');
                 })
@@ -579,6 +586,7 @@ define(function (require) {
         resize();
 
         var rolledCount = 0;
+        var rolledRow = 0;
 
         return {
             resize: resize,
@@ -588,9 +596,7 @@ define(function (require) {
                 renderer.disposeScene(scene);
             },
 
-            startRolling: function () {
-                // Move camera back
-                lookBackAnimation();
+            startRolling: function (cb) {
 
                 // Update probability, sum to 1
                 var all = 0;
@@ -610,6 +616,9 @@ define(function (require) {
                     }
                 });
                 animation.on('frame', rolling);
+
+                // Move camera back
+                lookBackAnimation(cb);
             },
 
             stopRolling: function (cb) {
@@ -630,26 +639,28 @@ define(function (require) {
                 ball.position.set(20, -107, 0);
                 ball.rotation.identity();
 
-                var ballTargetX = 350 - 25 * rolledCount;
+                rolledRow = Math.floor(rolledCount / 10);
+                var ballTargetZ = (2 - rolledRow) * -22;
+                var ballTargetX = 350 - 20 * (rolledCount % 10);
 
                 animation.animate(ball.position)
                     .when(2000, {
-                        x: ballTargetX
+                        x: ballTargetX,
+                        z: ballTargetZ
                     })
                     .during(function () {
                         ball.rotation.identity().rotateZ(
                             -ball.position.x / BALL_RADIUS
                         )
                     })
-                    .done(function () {
-                        cb && cb(ball.name);
-                    })
                     .delay(1000)
                     .start('CubicOut');
 
                 lookAtAnimation(new qtek.math.Vector3(
-                    ballTargetX, ball.position.y, ball.position.z
-                ), 40);
+                    ballTargetX, ball.position.y, ballTargetZ
+                ), 40, function () {
+                    cb && cb(ball.name);
+                });
 
                 rolledCount ++;
 
