@@ -1,7 +1,7 @@
 define(function (require) {
 
     var GLOBE_RADIUS = 100;
-    var BALL_RADIUS = 10;
+    var BALL_RADIUS = 8;
     var qtek = require('qtek');
 
     var ballGeo = new qtek.geometry.Sphere({
@@ -9,6 +9,8 @@ define(function (require) {
         heightSegments: 30
     });
     ballGeo.generateTangents();
+
+    var cubeGeo = new qtek.geometry.Cube();
 
     var labelGeo = new qtek.geometry.Sphere({
         widthSegments: 10,
@@ -25,7 +27,6 @@ define(function (require) {
         var segTheta = 10;
         var cubeList = [];
         var R = GLOBE_RADIUS;
-        var geo = new qtek.geometry.Cube();
         var material = new qtek.Material({
             shader: qtek.shader.library.get('buildin.physical'),
             transparent: true,
@@ -34,7 +35,7 @@ define(function (require) {
         material.set('glossiness', 0.6);
         material.set('specularColor', [0.2, 0.2, 0.2]);
         material.set('color', [1, 1, 1]);
-        material.set('alpha', 0.1);
+        material.set('alpha', 0.4);
         for (var k = 0; k <= segTheta; k++) {
             var theta = (k - segTheta / 2) * Math.PI / segTheta;
 
@@ -56,9 +57,10 @@ define(function (require) {
                 var z = Math.sin(phi) * Math.cos(theta) * (R + scale / 2);
 
                 var cube = new qtek.Mesh({
-                    geometry: geo,
+                    geometry: cubeGeo,
                     material: material,
-                    culling: false
+                    culling: false,
+                    visible: false
                 });
 
                 cube.position.set(x, y, z);
@@ -72,16 +74,18 @@ define(function (require) {
         }
         // 挡板
         var cube = new qtek.Mesh({
-            geometry: geo,
+            name: 'bar',
+            geometry: cubeGeo,
             material: material,
             culling: false
         });
-        cube.position.set(0, R / 2, 0);
-        cube.scale.set(R, R / 4, 1);
+        cube.position.set(0, -R / 2, 0);
+        cube.scale.set(R, R / 2, 3);
         cubeList.push(cube);
 
         return cubeList;
     }
+
 
     // Create cube physics rigid bodies
     function createCubeRigidBodies(cubeList, world, material) {
@@ -89,10 +93,12 @@ define(function (require) {
             var shape = new CANNON.Box(new CANNON.Vec3(
                 cube.scale.x, cube.scale.y, cube.scale.z
             ));
+
             var body = new CANNON.Body({
                 mass: 0,
-                material: material
+                type: cube.name === 'bar' ? CANNON.Body.KINEMATIC : CANNON.Body.STATIC
             });
+
             body.addShape(shape);
             body.position.set(
                 cube.position.x, cube.position.y, cube.position.z
@@ -176,17 +182,16 @@ define(function (require) {
 
     function drawLabel(name) {
         var canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
+        canvas.width = 128;
+        canvas.height = 128;
         var ctx = canvas.getContext('2d');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = 'bold 24px 微软雅黑';
+        ctx.font = 'bold 40px 微软雅黑';
 
-        ctx.fillStyle = 'black';
+        ctx.fillStyle = 'white';
         ctx.strokeStyle = 'white';
-        ctx.fillText(name, 32, 32);
-        ctx.strokeText(name, 32, 32);
+        ctx.fillText(name, 64, 64);
 
         return canvas;
     }
@@ -293,14 +298,15 @@ define(function (require) {
         });
     }
 
-    function createPlane() {
+    function createGround() {
         var plane = new qtek.Mesh({
             geometry: new qtek.geometry.Plane(),
             material: new qtek.Material({
                 shader: qtek.shader.library.get(
                     'buildin.physical', ['diffuseMap']
                 )
-            })
+            }),
+            castShadow: false
         });
         plane.rotation.rotateX(-Math.PI / 2);
         plane.position.y = -115;
@@ -316,6 +322,52 @@ define(function (require) {
         plane.material.set('uvRepeat', [5, 5]);
 
         return plane;
+    }
+
+    function createWalls() {
+        var diffuseTexture = new qtek.Texture2D({
+            anisotropic: 32,
+        });
+        diffuseTexture.load('asset/wall.jpg');
+
+        var largeCube = new qtek.geometry.Cube({
+            inside: true
+        });
+        var mesh = new qtek.Mesh({
+            material: new qtek.Material({
+                shader: qtek.shader.library.get('buildin.lambert', ['diffuseMap'])
+            }),
+            geometry: largeCube,
+            frontFace: qtek.Mesh.CW,
+            castShadow: false
+        });
+        mesh.material.set('diffuseMap', diffuseTexture);
+
+        mesh.scale.set(400, 300, 400);
+        mesh.position.y = 160;
+
+        return mesh;
+    }
+
+    function createCeil() {
+        var diffuseTexture = new qtek.Texture2D();
+        diffuseTexture.load('asset/ceil.jpg');
+
+        var largeCube = new qtek.geometry.Plane();
+        var mesh = new qtek.Mesh({
+            material: new qtek.Material({
+                shader: qtek.shader.library.get('buildin.basic', ['diffuseMap'])
+            }),
+            geometry: largeCube,
+            castShadow: false
+        });
+        mesh.material.set('diffuseMap', diffuseTexture);
+
+        mesh.rotation.rotateX(Math.PI / 2);
+        mesh.scale.set(400, 400, 1);
+        mesh.position.y = 450;
+
+        return mesh;
     }
 
     function init(dom, candidates) {
@@ -362,7 +414,9 @@ define(function (require) {
         });
         var control = new qtek.plugin.OrbitControl({
             target: camera,
-            domElement: renderer.canvas
+            domElement: renderer.canvas,
+            maxDistance: 450,
+            minDistance: 200
         });
         light.position.set(100, 100, 50);
         light.lookAt(qtek.math.Vector3.ZERO);
@@ -373,7 +427,11 @@ define(function (require) {
 
         loadBase(scene);
 
-        scene.add(createPlane());
+        // Create rooom
+        scene.add(createGround());
+        scene.add(createWalls());
+        scene.add(createCeil());
+
 
         camera.position.set(260, -50, 210)
         camera.lookAt(qtek.math.Vector3.ZERO);
@@ -394,7 +452,7 @@ define(function (require) {
         var ballCount = 0;
 
         var ballList = [];
-        var rollingSpeed = 0.1;
+        var rollingSpeed = 0;
         animation.on('frame', function (frameTime) {
             if (ballCount < candidates.length) {
                 ball = createBall(candidates[ballCount], ballMaterial);
@@ -414,7 +472,7 @@ define(function (require) {
             elapsedTime += frameTime;
             control.update(frameTime);
 
-            cubeRoot.update();
+            cubeRoot.update(true);
             syncCubeRigidBodies(cubeList);
             syncBalls(ballList);
 
@@ -437,31 +495,98 @@ define(function (require) {
             rollingSpeed = 0.1;
         }
 
-        var cameraOldPosition = new qtek.math.Vector3();
+        var cameraOldPosition = null;
+        var cameraOldQuaternion = null;
 
-        function lookAtAnimation(target, time, delay) {
+        function lookBackAnimation(cb) {
+            if (cameraOldPosition) {
+                var quat = camera.rotation.clone();
+                // Animate position
+                animation.animate(camera.position)
+                    .when(1000, {
+                        _array: cameraOldPosition._array
+                    })
+                    .during(function () {
+                        camera.position._dirty = true;
+                    })
+                    .done(function () {
+                        animation.animate({p: 0})
+                            .when(1000, { p: 1 })
+                            .during(function (_target, percent) {
+                                qtek.math.Quaternion.slerp(
+                                    camera.rotation, quat, cameraOldQuaternion, percent
+                                );
+                            })
+                            .done(function () {
+                                control.enable();
+                                control.origin.copy(qtek.math.Vector3.ZERO);
+
+                                cb && cb();
+                            })
+                            .start('CubicOut');
+                    })
+                    .start('CubicOut');
+
+
+                // Disable user mouse control
+                control.disable();
+
+            } else {
+                cb && cb();
+            }
+        }
+
+        function lookAtAnimation(target, distance, cb) {
             // Camera look at the ball
-            var quat = camera.rotation.clone();
+            // Animate quaternion
+            var oldQuat = camera.rotation.clone();
             camera.lookAt(target, qtek.math.Vector3.UP);
             var newQuat = camera.rotation.clone();
-            camera.rotation.copy(quat);
+            // Set back
+            camera.rotation.copy(oldQuat);
+
             animation.animate({p: 0})
-                .when(time, {
-                    p: 1
-                })
+                .when(2000, { p: 1 })
                 .during(function (_target, percent) {
                     qtek.math.Quaternion.slerp(
-                        camera.rotation, quat, newQuat, percent
+                        camera.rotation, oldQuat, newQuat, percent
                     );
                 })
-                .delay(delay)
+                .delay(1000)
+                .done(function () {
+                    // Animate position
+                    cameraOldPosition = camera.position.clone();
+                    cameraOldQuaternion = oldQuat;
+
+                    var v = camera.worldTransform.z.normalize();
+                    var newPosition = target.clone();
+                    newPosition.scaleAndAdd(v, distance);
+                    animation.animate(camera.position)
+                        .when(1000, {
+                            _array: newPosition._array
+                        })
+                        .during(function () {
+                            camera.position._dirty = true;
+                        })
+                        .done(function () {
+
+                            control.origin.copy(target);
+                            control.enable();
+
+                            cb && cb();
+                        })
+                        .start('CubicOut');
+                })
                 .start('CubicOut');
 
+            // Disable user mouse control
+            control.disable();
         }
 
         resize();
 
         var rolledCount = 0;
+        var rolledRow = 0;
 
         return {
             resize: resize,
@@ -471,9 +596,7 @@ define(function (require) {
                 renderer.disposeScene(scene);
             },
 
-            startRolling: function () {
-                // Move camera back
-                lookAtAnimation(cubeRoot.position, 1000, 0);
+            startRolling: function (cb) {
 
                 // Update probability, sum to 1
                 var all = 0;
@@ -493,6 +616,9 @@ define(function (require) {
                     }
                 });
                 animation.on('frame', rolling);
+
+                // Move camera back
+                lookBackAnimation(cb);
             },
 
             stopRolling: function (cb) {
@@ -510,29 +636,31 @@ define(function (require) {
                 world.remove(ball.body);
 
                 // Rolling out ball
-                ball.position.set(20, -105, 0);
+                ball.position.set(20, -107, 0);
                 ball.rotation.identity();
 
-                var ballTargetX = 350 - 25 * rolledCount;
+                rolledRow = Math.floor(rolledCount / 10);
+                var ballTargetZ = (2 - rolledRow) * -22;
+                var ballTargetX = 350 - 20 * (rolledCount % 10);
 
                 animation.animate(ball.position)
                     .when(2000, {
-                        x: ballTargetX
+                        x: ballTargetX,
+                        z: ballTargetZ
                     })
                     .during(function () {
                         ball.rotation.identity().rotateZ(
                             -ball.position.x / BALL_RADIUS
                         )
                     })
-                    .done(function () {
-                        cb && cb(ball.name);
-                    })
                     .delay(1000)
                     .start('CubicOut');
 
                 lookAtAnimation(new qtek.math.Vector3(
-                    ballTargetX, ball.position.y, ball.position.z
-                ), 2000, 1000);
+                    ballTargetX, ball.position.y, ballTargetZ
+                ), 40, function () {
+                    cb && cb(ball.name);
+                });
 
                 rolledCount ++;
 

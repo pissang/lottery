@@ -33,7 +33,7 @@ button:hover {
   position: absolute;
   right: 20px;
   top: 20px;
-  width: 140px;
+  width: 370px;
 }
 #winner-list h3 {
   font-size: 20px;
@@ -43,11 +43,13 @@ button:hover {
 #winner-list ul {
   margin: 0px;
   padding: 0px;
+  width: 370px;
 }
 #winner-list ul li {
-  background-color: white;
-  margin: 10px 0px;
-  padding: 10px 20px;
+  float: left;
+  background-color: rgba(255, 255, 255, 0.9);
+  margin: 10px 10px;
+  padding: 10px 0px;
   list-style: none;
   width: 100px;
   text-align: center;
@@ -56,4 +58,13 @@ button:hover {
 }
 #winner-list ul li:hover {
   box-shadow: 0 6px 10px rgba(0, 0, 0, 0.22);
+}
+#logos {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+}
+#logos img {
+  margin: 10px;
+  display: block;
 }

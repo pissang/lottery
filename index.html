@@ -13,6 +13,10 @@
             <h3>获奖人名单</h3>
             <ul></ul>
         </div>
+        <div id="logos">
+            <img src="img/logo-echarts2.png" alt="" height = "60px">
+            <img src="img/qtek-logo.png" alt="" height = "50px">
+        </div>
         <script src="lib/esl.js"></script>
         <script src="lib/cannon.js"></script>
         <script>
@@ -40,23 +44,34 @@
                 }
 
                 var rolling = false;
+                var animating = false;
 
                 var $list = document.querySelector('#winner-list ul');
                 var $toggle = document.getElementById('toggle');
                 $toggle.addEventListener('click', function () {
+                    if (animating) {
+                        return;
+                    }
                     if (! rolling) {
                         this.innerHTML = 'STOP';
-                        instance.startRolling();
+                        animating = true;
+                        instance.startRolling(function () {
+                            rolling = !rolling;
+                            animating = false;
+                        });
                     }
                     else {
                         this.innerHTML = 'START';
+                        animating = true;
                         var result = instance.stopRolling(function (name) {
                             var $li = document.createElement('li');
                             $li.innerHTML = name;
                             $list.appendChild($li);
+
+                            rolling = !rolling;
+                            animating = false;
                         });
                     }
-                    rolling = !rolling;
                 });
             });
         </script>
