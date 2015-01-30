@@ -187,12 +187,11 @@ define(function (require) {
         var ctx = canvas.getContext('2d');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = 'bold 24px 微软雅黑';
+        ctx.font = 'bold 20px 微软雅黑';
 
-        ctx.fillStyle = 'black';
+        ctx.fillStyle = 'white';
         ctx.strokeStyle = 'white';
         ctx.fillText(name, 32, 32);
-        ctx.strokeText(name, 32, 32);
 
         return canvas;
     }
