@@ -1,7 +1,7 @@
 define(function (require) {
 
     var GLOBE_RADIUS = 100;
-    var BALL_RADIUS = 10;
+    var BALL_RADIUS = 7;
     var qtek = require('qtek');
 
     var ballGeo = new qtek.geometry.Sphere({
@@ -9,6 +9,8 @@ define(function (require) {
         heightSegments: 30
     });
     ballGeo.generateTangents();
+
+    var cubeGeo = new qtek.geometry.Cube();
 
     var labelGeo = new qtek.geometry.Sphere({
         widthSegments: 10,
@@ -25,7 +27,6 @@ define(function (require) {
         var segTheta = 10;
         var cubeList = [];
         var R = GLOBE_RADIUS;
-        var geo = new qtek.geometry.Cube();
         var material = new qtek.Material({
             shader: qtek.shader.library.get('buildin.physical'),
             transparent: true,
@@ -34,7 +35,7 @@ define(function (require) {
         material.set('glossiness', 0.6);
         material.set('specularColor', [0.2, 0.2, 0.2]);
         material.set('color', [1, 1, 1]);
-        material.set('alpha', 0.1);
+        material.set('alpha', 0.4);
         for (var k = 0; k <= segTheta; k++) {
             var theta = (k - segTheta / 2) * Math.PI / segTheta;
 
@@ -56,9 +57,10 @@ define(function (require) {
                 var z = Math.sin(phi) * Math.cos(theta) * (R + scale / 2);
 
                 var cube = new qtek.Mesh({
-                    geometry: geo,
+                    geometry: cubeGeo,
                     material: material,
-                    culling: false
+                    culling: false,
+                    visible: false
                 });
 
                 cube.position.set(x, y, z);
@@ -72,15 +74,20 @@ define(function (require) {
         }
         // 挡板
         var cube = new qtek.Mesh({
-            geometry: geo,
+            name: 'bar',
+            geometry: cubeGeo,
             material: material,
             culling: false
         });
-        cube.position.set(0, R / 2, 0);
-        cube.scale.set(R, R / 4, 1);
+        cube.position.set(0, -R / 2, 0);
+        cube.scale.set(R, R / 2, 3);
         cubeList.push(cube);
 
         return cubeList;
+    }
+
+    function createApron() {
+
     }
 
     // Create cube physics rigid bodies
@@ -89,6 +96,7 @@ define(function (require) {
             var shape = new CANNON.Box(new CANNON.Vec3(
                 cube.scale.x, cube.scale.y, cube.scale.z
             ));
+
             var body = new CANNON.Body({
                 mass: 0,
                 material: material
@@ -293,7 +301,7 @@ define(function (require) {
         });
     }
 
-    function createPlane() {
+    function createGround() {
         var plane = new qtek.Mesh({
             geometry: new qtek.geometry.Plane(),
             material: new qtek.Material({
@@ -316,6 +324,52 @@ define(function (require) {
         plane.material.set('uvRepeat', [5, 5]);
 
         return plane;
+    }
+
+    function createWalls() {
+        var diffuseTexture = new qtek.Texture2D({
+            anisotropic: 32,
+        });
+        diffuseTexture.load('asset/wall.jpg');
+
+        var largeCube = new qtek.geometry.Cube({
+            inside: true
+        });
+        var mesh = new qtek.Mesh({
+            material: new qtek.Material({
+                shader: qtek.shader.library.get('buildin.lambert', ['diffuseMap'])
+            }),
+            geometry: largeCube,
+            frontFace: qtek.Mesh.CW,
+            castShadow: false
+        });
+        mesh.material.set('diffuseMap', diffuseTexture);
+
+        mesh.scale.set(400, 300, 400);
+        mesh.position.y = 160;
+
+        return mesh;
+    }
+
+    function createCeil() {
+        var diffuseTexture = new qtek.Texture2D();
+        diffuseTexture.load('asset/ceil.jpg');
+
+        var largeCube = new qtek.geometry.Plane();
+        var mesh = new qtek.Mesh({
+            material: new qtek.Material({
+                shader: qtek.shader.library.get('buildin.basic', ['diffuseMap'])
+            }),
+            geometry: largeCube,
+            castShadow: false
+        });
+        mesh.material.set('diffuseMap', diffuseTexture);
+
+        mesh.rotation.rotateX(Math.PI / 2);
+        mesh.scale.set(400, 400, 1);
+        mesh.position.y = 450;
+
+        return mesh;
     }
 
     function init(dom, candidates) {
@@ -362,7 +416,9 @@ define(function (require) {
         });
         var control = new qtek.plugin.OrbitControl({
             target: camera,
-            domElement: renderer.canvas
+            domElement: renderer.canvas,
+            maxDistance: 450,
+            minDistance: 200
         });
         light.position.set(100, 100, 50);
         light.lookAt(qtek.math.Vector3.ZERO);
@@ -373,7 +429,11 @@ define(function (require) {
 
         loadBase(scene);
 
-        scene.add(createPlane());
+        // Create rooom
+        scene.add(createGround());
+        scene.add(createWalls());
+        scene.add(createCeil());
+
 
         camera.position.set(260, -50, 210)
         camera.lookAt(qtek.math.Vector3.ZERO);
@@ -394,7 +454,7 @@ define(function (require) {
         var ballCount = 0;
 
         var ballList = [];
-        var rollingSpeed = 0.1;
+        var rollingSpeed = 0;
         animation.on('frame', function (frameTime) {
             if (ballCount < candidates.length) {
                 ball = createBall(candidates[ballCount], ballMaterial);
@@ -414,7 +474,7 @@ define(function (require) {
             elapsedTime += frameTime;
             control.update(frameTime);
 
-            cubeRoot.update();
+            cubeRoot.update(true);
             syncCubeRigidBodies(cubeList);
             syncBalls(ballList);
 
